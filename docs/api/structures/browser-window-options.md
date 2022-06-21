@@ -149,3 +149,6 @@ Possible values are:
     reserved for NSPanel, at runtime. Also, the window will appear on all
     spaces (desktops).
 * On Windows, possible type is `toolbar`.
+
+[overlay-css-env-vars]: https://github.com/WICG/window-controls-overlay/blob/main/explainer.md#css-environment-variables
+[overlay-javascript-apis]: https://github.com/WICG/window-controls-overlay/blob/main/explainer.md#javascript-apis
