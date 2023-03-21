@@ -5,9 +5,9 @@ import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as WebSocket from 'ws';
-import { emittedNTimes, emittedUntil } from './lib/events-helpers';
 import { ifit, listen } from './lib/spec-helpers';
 import { once } from 'events';
+import { emittedN, emittedUntil } from './lib/events';
 
 const uuid = require('uuid');
 
@@ -625,7 +625,7 @@ describe('chrome extensions', () => {
           );
 
           it('applies matching rules in subframes', async () => {
-            const detailsPromise = emittedNTimes(w.webContents, 'did-frame-finish-load', 2);
+            const detailsPromise = emittedN(w.webContents, 'did-frame-finish-load', 2);
             w.loadFile(path.join(contentScript, 'frame-with-frame.html'));
             const frameEvents = await detailsPromise;
             await Promise.all(
