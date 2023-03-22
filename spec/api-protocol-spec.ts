@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import { v4 } from 'uuid';
 import { protocol, webContents, WebContents, session, BrowserWindow, ipcMain } from 'electron/main';
 import * as ChildProcess from 'child_process';
-import * as path from 'path';
 import * as http from 'http';
 import * as fs from 'fs';
 import * as qs from 'querystring';
@@ -12,8 +11,7 @@ import { closeAllWindows, closeWindow } from './lib/window-helpers';
 import { WebmGenerator } from './lib/video-helpers';
 import { listen } from './lib/spec-helpers';
 import { setTimeout } from 'timers/promises';
-
-const fixturesPath = path.resolve(__dirname, 'fixtures');
+import { fixtureFileURL, fixturePath } from './lib/fixtures';
 
 const registerStringProtocol = protocol.registerStringProtocol;
 const registerBufferProtocol = protocol.registerBufferProtocol;
@@ -78,7 +76,7 @@ describe('protocol module', () => {
     // Note that we need to do navigation every time after a protocol is
     // registered or unregistered, otherwise the new protocol won't be
     // recognized by current page when NetworkService is used.
-    await contents.loadFile(path.join(__dirname, 'fixtures', 'pages', 'fetch.html'));
+    await contents.loadFile(fixturePath('pages', 'fetch.html'));
     return contents.executeJavaScript(`ajax("${url}", ${JSON.stringify(options)})`);
   }
 
@@ -225,9 +223,9 @@ describe('protocol module', () => {
     [(protocol as any).registerProtocol as typeof protocol.registerFileProtocol, 'protocol.registerProtocol'] as const
   ]) {
     describe(name, () => {
-      const filePath = path.join(fixturesPath, 'test.asar', 'a.asar', 'file1');
+      const filePath = fixturePath('test.asar', 'a.asar', 'file1');
       const fileContent = fs.readFileSync(filePath);
-      const normalPath = path.join(fixturesPath, 'pages', 'a.html');
+      const normalPath = fixturePath('pages', 'a.html');
       const normalContent = fs.readFileSync(normalPath);
 
       afterEach(closeAllWindows);
@@ -260,7 +258,7 @@ describe('protocol module', () => {
       it('can load iframes with custom protocols', (done) => {
         registerFileProtocol('custom', (request, callback) => {
           const filename = request.url.substring(9);
-          const p = path.join(__dirname, 'fixtures', 'pages', filename);
+          const p = fixturePath('pages', filename);
           callback({ path: p });
         });
 
@@ -272,7 +270,7 @@ describe('protocol module', () => {
           }
         });
 
-        w.loadFile(path.join(__dirname, 'fixtures', 'pages', 'iframe-protocol.html'));
+        w.loadFile(fixturePath('pages', 'iframe-protocol.html'));
         ipcMain.once('loaded-iframe-custom-protocol', () => done());
       });
 
@@ -301,7 +299,7 @@ describe('protocol module', () => {
       });
 
       it('fails when sending unexist-file', async () => {
-        const fakeFilePath = path.join(fixturesPath, 'test.asar', 'a.asar', 'not-exist');
+        const fakeFilePath = fixturePath('test.asar', 'a.asar', 'not-exist');
         registerFileProtocol(protocolName, (request, callback) => callback({ path: fakeFilePath }));
         await expect(ajax(protocolName + '://fake-host')).to.be.eventually.rejected();
       });
@@ -525,7 +523,7 @@ describe('protocol module', () => {
         const hasClosedPromise = once(events, 'close');
         ajax(protocolName + '://fake-host').catch(() => {});
         await hasRespondedPromise;
-        await contents.loadFile(path.join(__dirname, 'fixtures', 'pages', 'fetch.html'));
+        await contents.loadFile(fixturePath('pages', 'fetch.html'));
         await hasClosedPromise;
       });
     });
@@ -765,7 +763,7 @@ describe('protocol module', () => {
 
   describe('protocol.registerSchemeAsPrivileged', () => {
     it('does not crash on exit', async () => {
-      const appPath = path.join(__dirname, 'fixtures', 'api', 'custom-protocol-shutdown.js');
+      const appPath = fixturePath('api', 'custom-protocol-shutdown.js');
       const appProcess = ChildProcess.spawn(process.execPath, ['--enable-logging', appPath]);
       let stdout = '';
       let stderr = '';
@@ -815,7 +813,7 @@ describe('protocol module', () => {
   describe('protocol.registerSchemesAsPrivileged standard', () => {
     const origin = `${standardScheme}://fake-host`;
     const imageURL = `${origin}/test.png`;
-    const filePath = path.join(fixturesPath, 'pages', 'b.html');
+    const filePath = fixturePath('pages', 'b.html');
     const fileContent = '<img src="/test.png" />';
     let w: BrowserWindow;
 
@@ -876,7 +874,7 @@ describe('protocol module', () => {
 
     // FIXME
     it('can access files through the FileSystem API', (done) => {
-      const filePath = path.join(fixturesPath, 'pages', 'filesystem.html');
+      const filePath = fixturePath('pages', 'filesystem.html');
       protocol.registerFileProtocol(standardScheme, (request, callback) => callback({ path: filePath }));
       w.loadURL(origin);
       ipcMain.once('file-system-error', (event, err) => done(err));
@@ -884,7 +882,7 @@ describe('protocol module', () => {
     });
 
     it('registers secure, when {secure: true}', (done) => {
-      const filePath = path.join(fixturesPath, 'pages', 'cache-storage.html');
+      const filePath = fixturePath('pages', 'cache-storage.html');
       ipcMain.once('success', () => done());
       ipcMain.once('failure', (event, err) => done(err));
       protocol.registerFileProtocol(standardScheme, (request, callback) => callback({ path: filePath }));
@@ -907,8 +905,8 @@ describe('protocol module', () => {
     });
 
     it('supports fetch api by default', async () => {
-      const url = `file://${fixturesPath}/assets/logo.png`;
-      await w.loadURL(`file://${fixturesPath}/pages/blank.html`);
+      const url = fixtureFileURL('assets', 'logo.png');
+      await w.loadURL(fixtureFileURL('pages', 'blank.html'));
       const ok = await w.webContents.executeJavaScript(`fetch(${JSON.stringify(url)}).then(r => r.ok)`);
       expect(ok).to.be.true('response ok');
     });
@@ -995,9 +993,9 @@ describe('protocol module', () => {
   });
 
   describe('protocol.registerSchemesAsPrivileged stream', async function () {
-    const pagePath = path.join(fixturesPath, 'pages', 'video.html');
-    const videoSourceImagePath = path.join(fixturesPath, 'video-source-image.webp');
-    const videoPath = path.join(fixturesPath, 'video.webm');
+    const pagePath = fixturePath('pages', 'video.html');
+    const videoSourceImagePath = fixturePath('video-source-image.webp');
+    const videoPath = fixturePath('video.webm');
     let w: BrowserWindow;
 
     before(async () => {
