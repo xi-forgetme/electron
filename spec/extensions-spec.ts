@@ -8,7 +8,7 @@ import * as WebSocket from 'ws';
 import { listen } from './lib/spec-helpers';
 import { ifit } from './lib/spec-conditional';
 import { once } from 'events';
-import { emittedN, emittedUntil } from './lib/events';
+import { emittedN, findEmit } from './lib/events';
 import { fixturePath } from './lib/fixtures';
 
 const uuid = require('uuid');
@@ -155,7 +155,7 @@ describe('chrome extensions', () => {
     const loadedPromise = once(customSession, 'extension-loaded');
     const extension = await customSession.loadExtension(fixturePath('extensions', 'red-bg'));
     const [, loadedExtension] = await loadedPromise;
-    const [, readyExtension] = await emittedUntil(customSession, 'extension-ready', (event: Event, extension: Extension) => {
+    const [, readyExtension] = await findEmit(customSession, 'extension-ready', (event: Event, extension: Extension) => {
       return extension.name !== 'Chromium PDF Viewer';
     });
 
