@@ -8,7 +8,7 @@
 // python-dbusmock.
 import { expect } from 'chai';
 import * as dbus from 'dbus-native';
-import { ifdescribe } from './lib/spec-helpers';
+import { ifdescribe } from './lib/spec-conditional';
 import { promisify } from 'util';
 import { setTimeout } from 'timers/promises';
 
